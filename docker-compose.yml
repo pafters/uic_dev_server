@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  server:
+    command: sh -c 'npm install && node index.js'
+    container_name: uic_dev_server
+    image: node:20-alpine
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    volumes:
+      - ./:/app:rw
+    working_dir: /app
+    depends_on:
+      - pgsql
+
+  pgsql:
+    env_file:
+      - ./.env
+    image: postgres
+    container_name: uic_pgsql
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      SERVICE_NAME: pgsql
+    volumes:
+      - ./data/pgsql:/postgresql/data
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
