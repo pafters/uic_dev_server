@@ -152,7 +152,7 @@ class DBManager {
 
     async getSlots() {
         const slots = await Slot.findAll({
-            attributes: ['id', 'name', 'time_start'],
+            attributes: ['id', 'name', 'time_start', 'time_end'],
             order: [['name', 'ASC']]
         });
 

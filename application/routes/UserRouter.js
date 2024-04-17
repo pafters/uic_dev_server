@@ -9,6 +9,5 @@ router.get('/getMe', UserController.qGetMe);
 router.get('/changePassword', UserController.changeQPassword);
 router.get('/recovery/:token', UserController.qRecovery);
 router.get('/sendRecoveryLink', UserController.sendRecoveryLink)
-// router.get('/authStatus', userController.authStatus); //проверка на авторизацию
 
 module.exports = router;

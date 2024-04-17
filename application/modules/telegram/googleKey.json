@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "uic-dev-questions",
+  "private_key_id": "ad095028563b008b7a8f73df566a76468e416bc5",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCISg5IMxl19b87\nTqq7kvmYG6jJpazDHw7+QzrI68EhHWQ51rSqpXa/WRG+B6DEk8h2R+N+cw62/6YZ\n6kyzEAwViSx6zXw4znR2VWa+JgmH8yN6MH4xL56zXJoniYu1fwRfsXjb8oTxLu/Z\n/QjDtrnXMpbFpVgd+XBg/0+Hvibi2zw8eeJbEhd0ewXFFJnmmm5Uj1dgsUwkf0Gh\nv8j8JrCKdtfL9ShgEvsCLW2AzqTZBEUcyMGEiTY5D918wlkH/gfhL3qnJdfgOM5Y\nF/ksJEpadC12/mi2x8sWCk4OeT+JBZ1eV2GEjQIOGyZGtEKpsC+junFDhngrulis\naQ5F1cJHAgMBAAECggEANWNRKe4+fItqQGjGD9l4xaGcInWwcfTyMh8S4Y8cpgS1\n9MRLHIfZtwZEoXyqeSbtAYySrL+UlZIato8mQYS5PxxvnKFvFm+lho9Ywoby99sC\nXESvwkPFtrxBNNi4Lj5V78h9MCfV9QaudWWeL9CeBxMtpbnqBT/nyk9pD6Mo53do\nxZvhlkFFl2+5Z0Uav9/JCYzARd+6IHcqLbv+CBf5YZmqG3Y79H8niTarKwbxRYOU\nBaiMDoT4CICsWOQ21psAb7RcnrUGM6qowVN4Ij6gKhUG/NvnzMCiQVOQjC/W+Th3\n+YDUHijwdbTdhxaen7h4MdNufK/XiO7cvUSuPLyOvQKBgQC/ESCR6nPWL7OoTOQV\nuPXxSGaR3z4axtJ9pjdv6vly19yHHOd2FjeX/YBMruZUJ41GiZ9sQ/kwLR/VB5LS\nTEK0KJPDd3ckblPWl31PFR/tG07mW1RJQE1ZFi7S1nYIl/48aZphVE6Trh3bdTdW\n6X2mYl7T79N+Mz+8KNRGUs1a3QKBgQC2m0KqmSUTHgZ+MR7mqNu1PXEaepCBO5k0\nWvXsyGw2gd2IYTsBA2P0ZyFimMIa/aFwWasof48V863kUIEA1ZcRva0Jy+74SHVI\n7DGHDpacaSPIA55juRC9ViPJrdhQg3RoczeRQfpjPXLxFTmDwcMVJ/k3ELxIamwb\nEbwBQgQlcwKBgQCqUKcaysYVEBJynI/YOTaqrOIZd8lRbxekv2y9S9SuJXND0WUV\n4zoNNwCN2n4gV91cGkNM686NvjuY1pZu9WGkXGNTIwPGKr57FDC0NN1vqx8KwjCA\n11vbZKW6dUdj47DRw0TFK7SbeeLNhFAfHiVOEnP7MdXxsddHb5HBWgAJ1QKBgQCw\n6JIZvOySLNCViPkq9gSE/dWJlZxR12+BrW37y+Aqnn4FFk2XmbVInnFVmDDU/Ute\nEUEkpw/0cHPTcbrJGCSXZ28wwoXtvCUEVO9WrOd0+NdVe0wDyNNS2xUo2mdq+S/Z\n0WXQMF9nrayhq7Jg12MsJ+HlWy1N6ux4/SFrBo4FyQKBgFekTDoPNpdDehrQDyrs\nJKx+Sfhwdi4PFlmRQ8Ao86oFmzQfSVa3SWePiIsSp12ZjMMuyxXCRPZgT3dE0Nfb\n47B8mtANIQD3LX7C2mT5Vn14mPh6FYX0iRC38SU5taABI6Djde/Si8bh4gkORhiK\n5PJh8+lwHBfRhsXiUnyVquiR\n-----END PRIVATE KEY-----\n",
+  "client_email": "uic-dev-service@uic-dev-questions.iam.gserviceaccount.com",
+  "client_id": "100709178120479228248",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/uic-dev-service%40uic-dev-questions.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

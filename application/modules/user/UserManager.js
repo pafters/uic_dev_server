@@ -195,31 +195,44 @@ class UserManager {
     }
 
     decodeToken(token) {
-        return jwt.verify(token, process.env.JWT_SECRET);
+        try {
+            return jwt.verify(token, process.env.JWT_SECRET);
+        } catch (e) {
+            return false;
+        }
+
     }
 
     async qGetMe(login) {
-        const qUser = await DBManager.getQuser(login);
-        if (qUser) {
-            //пароль совпал
-            const userData = {
-                email: qUser.email,
-                name: qUser.name,
-                access23: qUser.access23
+        try {
+            const qUser = await DBManager.getQuser(login);
+            if (qUser) {
+                //пароль совпал
+                const userData = {
+                    email: qUser.email,
+                    name: qUser.name,
+                    access23: qUser.access23
+                }
+
+                return {
+                    msg: { userData },
+                    status: 200
+                };
+            } else {
+                return {
+                    msg: { err: 'Пользователь с таким логином не найден' },
+                    status: 401
+                };
+
             }
-
-            return {
-                msg: { userData },
-                status: 200
-            };
-
-        } else {
+        } catch (e) {
+            console.log(e);
             return {
                 msg: { err: 'Пользователь с таким логином не найден' },
                 status: 401
-            };
-
+            }
         }
+
 
     }
 

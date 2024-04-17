@@ -1,79 +1,104 @@
 const { Markup } = require("telegraf");
-const DBManager = require("../modules/db/DBManager");
 
-const TELEGRAM_COMPONENTS = {
+const TITLES = {
+    PROGRAM: '📋 Программа',
+    NOW: '🔥 Идет сейчас',
+    NEXT_SLOT: '➡️ Следующий слот',
+    MAIN: '↩️ Главное меню',
+    FOR_USERS: '👤 Участникам',
+    SCHEME: '🗺️ Схема',
+    PROGRAMS_BY_SLOT: '🕓 Вся программа по слотам',
+    PROGRAMS_BY_SECTIONS: '🗃️ Вся программа по секциям',
+    MY_SCHEDULE: '❤️ Мое расписание',
+    DETAIL: '⋮',
+    SET_MARK: '👍',
+    QUESTION: '❔',
+    FOLLOW: '❤️',
+    UNFOLLOW: '💔',
+    NEXT_PROGRAM: 'Показать еще',
+    YES: 'Да',
+    NO: 'НЕТ'
+}
+
+const CALLBACKS_DATA = {
+    DETAIL: `speech_info`,
+    SET_MARK: `set_mark`,
+    QUESTION: `question`,
+    FOLLOW: `follow`,
+    UNFOLLOW: `unfollow`,
+    NEXT_PROGRAM: `next_program`,
+    SPEECH_COMMENT_YES: `speechComment_yes`,
+    SPEECH_COMMENT_NO: `speechComment_no`,
+    SPEECH_QUESTION_YES: `speechQuestion_yes`,
+    SPEECH_QUESTION_NO: `speechQuestion_no`
+}
+
+const COMPONENTS = {
     //MENU
-    programKeybord: [
-        [{ text: '🔥 Идет сейчас' }, { text: '➡️ Следующий слот' }], // Row1 with 2 buttons
-        [{ text: '🗃️ Вся программа по секциям' }], // Row2 with 2 buttons
-        [{ text: '🕓 Вся программа по слотам' }],
-        [{ text: '↩️ Главное меню' }],
+    PROGRAM_KEYBOARD: [
+        [{ text: TITLES.NOW }, { text: TITLES.NEXT_SLOT }], // Row1 with 2 buttons
+        [{ text: TITLES.PROGRAMS_BY_SECTIONS }], // Row2 with 2 buttons
+        [{ text: TITLES.PROGRAMS_BY_SLOT }],
+        [{ text: TITLES.MAIN }],
         // ['button 5', 'button 6', 'button 7'] // Row3 with 3 buttons
     ],
-    starterKeybord: [
-        [{ text: '📋 Программа' }, { text: '❤️ Мое расписание' }], // Row1 with 2 buttons
-        [{ text: '🗺️ Схема' }, { text: '👤 Участникам' }], // Row2 with 2 buttons
+    STARTER_KEYBOARD: [
+        [{ text: TITLES.PROGRAM }, { text: TITLES.MY_SCHEDULE }], // Row1 with 2 buttons
+        [{ text: TITLES.SCHEME }, { text: TITLES.FOR_USERS }], // Row2 with 2 buttons
     ],
-    // speechInfoKeybord: [
-    //     [{ text: '📋 Программа' }, { text: '🗺️ Где проходит' }],
-    // ],
-    // followSpeechInfoKeybord: [
-    //     [{ text: '❤️ Мое расписание' }, { text: '🗺️ Где проходит' }],
-    // ],
-    slotsKeybord: [
-        async () => {
-
-        }
-    ],
-    //END MENU
-
-    //MESSAGE BUTTONS
-    programButtonsFrstRow: [
-        Markup.button.callback('⋮', `speech_info`), //this.programs[this.programIndex].id
-        Markup.button.callback('👍', `set_mark`),
-        Markup.button.callback('❔', `question`),
-        Markup.button.callback('❤️', `follow`),
-    ],
-    speechInfoButtonsFrstRow: [
-        Markup.button.callback('👍', `set_mark`),
-        Markup.button.callback('❔', `question`),
-        Markup.button.callback('❤️', `follow`),
-    ],
-    programButtonsScndRow: [
-        Markup.button.callback('Показать еще', `programIndex`)
-    ],
-    speechButtons: [
-        Markup.button.callback('👍', `set_mark`),
-        Markup.button.callback('❔', `question`),
-        Markup.button.callback('❤️', `follow`),
-    ],
-    followSpeechButtons: [
-        Markup.button.callback('⋮', `speech_info`),
-        Markup.button.callback('👍', `set_mark`),
-        Markup.button.callback('❔', `question`),
-        Markup.button.callback('💔', `unfollow`),
-    ],
-    followSpeechInfoFrstRow: [
-        Markup.button.callback('👍', `set_mark`),
-        Markup.button.callback('❔', `question`),
-        Markup.button.callback('💔', `unfollow`),
-    ],
-    marksButtons: (num) => [
-        Markup.button.callback('1', `mark_${num}_1`),
-        Markup.button.callback('2', `mark_${num}_2`),
-        Markup.button.callback('3', `mark_${num}_3`),
-        Markup.button.callback('4', `mark_${num}_4`),
-        Markup.button.callback('5', `mark_${num}_5`),
-    ],
-    speechCommentButtons: [
-        Markup.button.callback('Да', `speechComment_yes`),
-        Markup.button.callback('Нет', `speechComment_no`),
-    ],
-    speechQuestionButtons: [
-        Markup.button.callback('Да', `speechQuestion_yes`),
-        Markup.button.callback('Нет', `speechQuestion_no`),
-    ]
+    CALLBACKS: {
+        PROGRAM: [
+            [
+                Markup.button.callback(TITLES.DETAIL, CALLBACKS_DATA.DETAIL), //this.programs[this.programIndex].id
+                Markup.button.callback(TITLES.SET_MARK, CALLBACKS_DATA.SET_MARK),
+                Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
+                Markup.button.callback(TITLES.FOLLOW, CALLBACKS_DATA.FOLLOW),
+            ],
+            [
+                Markup.button.callback(TITLES.NEXT_PROGRAM, CALLBACKS_DATA.NEXT_PROGRAM)
+            ]
+        ],
+        DETAIL_PROGRAM: [
+            Markup.button.callback(TITLES.SET_MARK, CALLBACKS_DATA.SET_MARK),
+            Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
+            Markup.button.callback(TITLES.FOLLOW, CALLBACKS_DATA.FOLLOW),
+        ],
+        FOLLOW: [
+            Markup.button.callback(TITLES.DETAIL, CALLBACKS_DATA.DETAIL),
+            Markup.button.callback(TITLES.SET_MARK, CALLBACKS_DATA.SET_MARK),
+            Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
+            Markup.button.callback(TITLES.UNFOLLOW, CALLBACKS_DATA.UNFOLLOW),
+        ],
+        DETAIL_FOLLOW: [
+            Markup.button.callback(TITLES.SET_MARK, CALLBACKS_DATA.SET_MARK),
+            Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
+            Markup.button.callback(TITLES.UNFOLLOW, CALLBACKS_DATA.UNFOLLOW),
+        ],
+        SET_MARKS: (num) => [
+            Markup.button.callback('1', `mark_${num}_1`),
+            Markup.button.callback('2', `mark_${num}_2`),
+            Markup.button.callback('3', `mark_${num}_3`),
+            Markup.button.callback('4', `mark_${num}_4`),
+            Markup.button.callback('5', `mark_${num}_5`),
+        ],
+        COMMENT: [
+            Markup.button.callback(TITLES.YES, CALLBACKS_DATA.SPEECH_COMMENT_YES),
+            Markup.button.callback(TITLES.NO, CALLBACKS_DATA.SPEECH_COMMENT_NO),
+        ],
+        QUESTION: [
+            Markup.button.callback(TITLES.YES, CALLBACKS_DATA.SPEECH_QUESTION_YES),
+            Markup.button.callback(TITLES.NO, CALLBACKS_DATA.SPEECH_QUESTION_NO),
+        ],
+    },
+    HEARS: {
+        TITLES: { ...TITLES },
+        CALLBACKS: { ...CALLBACKS_DATA }
+    },
+    ERRORS: {
+        INTERNAL_SERVER: 'Ошибка обработки сообщения',
+        SPAM: 'Дождитесь ответа на прошлый запрос'
+    }
     //END MESSAGE BUTTONS
 }
 
-module.exports = TELEGRAM_COMPONENTS;
+module.exports = COMPONENTS;

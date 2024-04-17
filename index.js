@@ -12,7 +12,7 @@ const baseRouter = require('./application/routes/BaseRouter');
 const { adminBro, router } = require('./application/modules/adminBro/adminBro');
 const path = require('path');
 
-//const telegramBot = require('./application/modules/telegramBot/telegramBot');
+const botRouter = require('./application/routes/BotRouter');
 // Сообщение о том, что сервер запущен и прослушивает указанный порт 
 
 //enables cors

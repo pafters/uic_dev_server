@@ -18,7 +18,6 @@ class MailController {
     }
 
     sendRecoveryLink = async (email, link) => {
-        console.log(this.subjects.recovery);
         const messageId = await smtp.sendMail(email, this.subjects.recovery,
             `Мы получили запрос на смену пароля от Вашего аккаунта.` +
             `Если это действительно Вы, и Вы хотите сменить свой пароль, пожалуйста, перейдите по ссылке ниже: \n\n ${link}`);

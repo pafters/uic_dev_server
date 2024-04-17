@@ -1,6 +1,13 @@
 version: '3'
 
 services:
+  redis:
+    image: 'redis:latest'
+    container_name: redis
+    ports:
+      - '6379:6379'
+    environment:
+      - REDIS_PASSWORD=QWfdsTq6S1
   server:
     command: sh -c 'npm install && node index.js'
     container_name: uic_dev_server
@@ -12,6 +19,7 @@ services:
     working_dir: /app
     depends_on:
       - pgsql
+      - redis
 
   pgsql:
     env_file:
