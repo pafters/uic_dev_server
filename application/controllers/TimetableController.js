@@ -37,6 +37,20 @@ class TimetableController {
         //все поля, что есть в бд. Те, что с id, раскрыть полным объектом
     }
 
+    async getDates(req, res) {
+        try {
+            const dates = await DBManager.getDates();
+
+            if (dates) {
+                res.json(dates);
+            }
+
+        } catch (err) {
+            res.status(500);
+        }
+        //все поля, что есть в бд. Те, что с id, раскрыть полным объектом
+    }
+
     async getSpeech(req, res) {
         try {
             const data = await DBManager.getSpeech(req.params.id);

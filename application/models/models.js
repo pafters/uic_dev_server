@@ -149,10 +149,6 @@ const Speech = sequelize.define('speech', {
         type: DataTypes.TEXT,
         allowNull: true,
     },
-    speech_name: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-    },
     abstract: {
         type: DataTypes.TEXT,
         allowNull: true,
@@ -167,10 +163,18 @@ const Speech = sequelize.define('speech', {
     },
     listeners: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         defaultValue: 0
     }
 });
+
+const Assignment = sequelize.define('assignment', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+})
 
 const Track = sequelize.define('track', {
     id: {
@@ -184,6 +188,22 @@ const Track = sequelize.define('track', {
     },
     color: {
         type: DataTypes.STRING,
+        allowNull: false,
+    },
+});
+
+const Day = sequelize.define('day', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+    },
+    name: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    date: {
+        type: DataTypes.DATEONLY,
         allowNull: false,
     },
 });
@@ -394,11 +414,14 @@ const RecoveryLink = sequelize.define('recovery_link', {
 Person.hasOne(Section); //Person - Section 1:1
 Section.belongsTo(Person);
 
-Person.hasMany(Speech); //Person - Speech 1:M
-Speech.belongsTo(Person);
-
-
+Person.hasMany(Assignment);
+Assignment.belongsTo(Person);
 //END PERSON 
+
+//SPEECH
+Speech.hasMany(Assignment);
+Assignment.belongsTo(Speech);
+//END SPEECH
 
 //COMPANY
 Company.hasMany(Section)
@@ -406,9 +429,8 @@ Section.belongsTo(Company);
 
 Company.hasMany(Person); //Company - Person 1:M
 Person.belongsTo(Company);
-
-
 //END COMPANY
+
 
 //SECTION
 Section.hasMany(Program);
@@ -423,6 +445,8 @@ Slot.hasMany(Event);
 Event.belongsTo(Slot);
 //END SLOT
 
+
+
 //PROGRAM
 Speech.hasOne(Program);
 Program.belongsTo(Speech);
@@ -432,6 +456,14 @@ Program.belongsTo(Speech);
 Track.hasMany(Speech);
 Speech.belongsTo(Track);
 //END TRACK
+
+//DAY
+Day.hasMany(Program);
+Program.belongsTo(Day);
+
+Day.hasMany(Event);
+Event.belongsTo(Day);
+//END DAY
 
 //SPEECH
 Speech.hasMany(Mark);
@@ -473,6 +505,7 @@ module.exports = {
     Section,
     Speech,
     Track,
+    Day,
     Slot,
     Program,
     Schedule,
@@ -480,5 +513,6 @@ module.exports = {
     Event,
     Question,
     Quser,
-    RecoveryLink
+    RecoveryLink,
+    Assignment
 }

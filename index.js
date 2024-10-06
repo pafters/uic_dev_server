@@ -1,7 +1,7 @@
 require('dotenv').config();
-const express = require('express'); //Строка 1
-const app = express(); //Строка 2
-const PORT = process.env.SERVER_PORT || 5000; //Строка 3
+const express = require('express');
+const app = express();
+const PORT = process.env.SERVER_PORT || 5000;
 const cors = require('cors');
 const sequelize = require('./application/modules/db/DB');
 
@@ -13,7 +13,6 @@ const { adminBro, router } = require('./application/modules/adminBro/adminBro');
 const path = require('path');
 
 const botRouter = require('./application/routes/BotRouter');
-// Сообщение о том, что сервер запущен и прослушивает указанный порт 
 
 //enables cors
 app.use(express.json());
@@ -24,13 +23,11 @@ app.use(cors({
     'methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',
     'preflightContinue': false
 }));
+
 app.use('/api', baseRouter);
 app.use(adminBro.options.rootPath, router);
 app.use(bodyParser.json());
 app.use('/api/upload', express.static(path.join(__dirname, 'upload')))
-
-//ADMINBRO
-//
 
 app.get('/api/', (req, res) => {
     res.status(200).json({ message: 'All right!' })

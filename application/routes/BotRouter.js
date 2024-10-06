@@ -54,65 +54,87 @@ bot.start(async (ctx) => {
 bot.hears(COMPONENTS.HEARS.TITLES.PROGRAM, async (ctx) => {
     const chat_id = ctx.update.message.chat.id;
     checkUser(chat_id, ctx.update.message.chat);
-    if (!users[chat_id].cancelInProgress)
+    if (!users[chat_id].cancelInProgress) {
+        users[chat_id].currentMenu = null;
         await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getProgramKeybord(ctx));
+    }
     else ctx.reply(COMPONENTS.ERRORS.SPAM);
 });
 bot.hears(COMPONENTS.HEARS.TITLES.NOW, async (ctx) => {
     const chat_id = ctx.update.message.chat.id;
     checkUser(chat_id, ctx.update.message.chat);
-    if (!users[chat_id].cancelInProgress)
+    if (!users[chat_id].cancelInProgress) {
+        users[chat_id].currentMenu = null;
+        users[chat_id].currentDate = '7 октября'; //moment().format('YYYY-MM-DD');
         await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getProgramsList(ctx, true));
+    }
     else ctx.reply(COMPONENTS.ERRORS.SPAM);
 });
 bot.hears(COMPONENTS.HEARS.TITLES.NEXT_SLOT, async (ctx) => {
     const chat_id = ctx.update.message.chat.id;
     checkUser(chat_id, ctx.update.message.chat);
-    if (!users[chat_id].cancelInProgress)
+    if (!users[chat_id].cancelInProgress) {
+        users[chat_id].currentMenu = null;
+        if (!users[chat_id].currentDate) {
+            users[chat_id].currentDate = '7 октября';
+        }
         await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getProgramsList(ctx, false));
+    }
     else ctx.reply(COMPONENTS.ERRORS.SPAM);
 });
 bot.hears(COMPONENTS.HEARS.TITLES.MAIN, async (ctx) => {
     const chat_id = ctx.update.message.chat.id;
     checkUser(chat_id, ctx.update.message.chat);
-    if (!users[chat_id].cancelInProgress)
+    if (!users[chat_id].cancelInProgress) {
+        users[chat_id].currentMenu = null;
         await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getStarterKeybord(ctx));
+    }
     else ctx.reply(COMPONENTS.ERRORS.SPAM);
 });
 bot.hears(COMPONENTS.HEARS.TITLES.FOR_USERS, async (ctx) => {
     const chat_id = ctx.update.message.chat.id;
     checkUser(chat_id, ctx.update.message.chat);
-    if (!users[chat_id].cancelInProgress)
+    if (!users[chat_id].cancelInProgress) {
+        users[chat_id].currentMenu = null;
         await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getConfInfo(ctx));
+    }
     else ctx.reply(COMPONENTS.ERRORS.SPAM);
 });
 bot.hears(COMPONENTS.HEARS.TITLES.SCHEME, async (ctx) => {
     const chat_id = ctx.update.message.chat.id;
     checkUser(chat_id, ctx.update.message.chat);
-    if (!users[chat_id].cancelInProgress)
+    if (!users[chat_id].cancelInProgress) {
+        users[chat_id].currentMenu = null;
         await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getNav(ctx));
+    }
     else ctx.reply(COMPONENTS.ERRORS.SPAM);
 });
 bot.hears(COMPONENTS.HEARS.TITLES.PROGRAMS_BY_SLOT, async (ctx) => {
     const chat_id = ctx.update.message.chat.id;
     checkUser(chat_id, ctx.update.message.chat);
-    if (!users[chat_id].cancelInProgress)
-        await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getSlotsKeybord(ctx));
+    if (!users[chat_id].cancelInProgress) {
+        users[chat_id].currentMenu = 'PROGRAMS_BY_SLOT';
+        await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getDatesKeybord(ctx));
+    }
     else ctx.reply(COMPONENTS.ERRORS.SPAM);
 });
 bot.hears(COMPONENTS.HEARS.TITLES.PROGRAMS_BY_SECTIONS, async (ctx) => {
     const chat_id = ctx.update.message.chat.id;
     checkUser(chat_id, ctx.update.message.chat);
-    if (!users[chat_id].cancelInProgress)
-        await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getSectionsKeybord(ctx));
+    if (!users[chat_id].cancelInProgress) {
+        users[chat_id].currentMenu = 'PROGRAMS_BY_SECTIONS';
+        await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getDatesKeybord(ctx));
+    }
     else ctx.reply(COMPONENTS.ERRORS.SPAM);
 
 });
 bot.hears(COMPONENTS.HEARS.TITLES.MY_SCHEDULE, async (ctx) => {
     const chat_id = ctx.update.message.chat.id;
     checkUser(chat_id, ctx.update.message.chat);
-    if (!users[chat_id].cancelInProgress)
-        await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getFollowSlotsKeybord(ctx, chat_id));
+    if (!users[chat_id].cancelInProgress) {
+        users[chat_id].currentMenu = 'MY_SCHEDULE';
+        await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getDatesKeybord(ctx));
+    }
     else ctx.reply(COMPONENTS.ERRORS.SPAM);
 });
 
@@ -122,18 +144,59 @@ bot.on(message('text'), async (ctx) => {
     try {
         const slots = await DBManager.getSlots();
         const sections = await DBManager.getSections();
+        const dates = await DBManager.getDates();
         const chat_id = ctx?.update?.message?.chat?.id;
         checkUser(chat_id, ctx.update.message.chat);
         if (!users[chat_id].cancelInProgress) {
             switch (ctx.update.message.text) {
-                case '/program': await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getProgramKeybord(ctx)); break;
-                case '/now': await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getProgramsList(ctx, true)); break;
-                case '/next': await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getProgramsList(ctx, false)); break;
-                case '/my': await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getFollowSlotsKeybord(ctx, chat_id)); break;;
-                case '/nav': await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getNav(ctx)); break;
-                case '/faq': await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getConfInfo(ctx)); break;
+                case '/program': {
+                    users[chat_id].currentMenu = null;
+                    await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getProgramKeybord(ctx));
+                    break;
+                };
+                case '/now': {
+                    users[chat_id].currentMenu = null;
+                    await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getProgramsList(ctx, true));
+                    break;
+                };
+                case '/next': {
+                    users[chat_id].currentMenu = null;
+                    await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getProgramsList(ctx, false));
+                    break;
+                };
+                case '/my': {
+                    users[chat_id].currentMenu = 'MY_SCHEDULE';
+                    await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getDatesKeybord(ctx));
+                    break;
+                };
+                case '/nav': {
+                    users[chat_id].currentMenu = null;
+                    await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getNav(ctx));
+                    break;
+
+                };
+                case '/faq': {
+                    users[chat_id].currentMenu = null;
+                    await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getConfInfo(ctx));
+                    break;
+                };
             }
 
+            if (dates.some((x) => x.name === ctx.update.message.text)) {
+                users[chat_id].currentDate = ctx.update.message.text;
+                if (users[chat_id].currentMenu === 'PROGRAMS_BY_SLOT') {
+                    await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getSlotsKeybord(ctx));
+                }
+                else if (users[chat_id].currentMenu === 'PROGRAMS_BY_SECTIONS') {
+                    await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getSectionsKeybord(ctx));
+                }
+                else if (users[chat_id].currentMenu === 'MY_SCHEDULE') {
+                    await callFunction(users[chat_id], ctx, 'all', () => users[chat_id].getFollowSlotsKeybord(ctx, chat_id));
+                }
+                else {
+                    ctx.reply('Попробуй отправить другой запрос');
+                }
+            }
 
             if (slots && !users[chat_id].isFollowKeybord) { //получаем программу по выбранному слоту
                 for (let slot of slots) {

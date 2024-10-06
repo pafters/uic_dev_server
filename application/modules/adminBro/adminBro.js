@@ -66,7 +66,7 @@ const adminBro = new AdminBro({
                     },
                     last_name: {
                         isVisible: { list: false, filter: true, show: true, edit: true }
-                    }, 
+                    },
                     description: {
                         type: 'richtext'
                     }
@@ -103,16 +103,8 @@ const adminBro = new AdminBro({
                         type: 'richtext'
                     },
                     name: {
-                        isVisible: { list: true, filter: true, show: true, edit: false },
+                        isVisible: { list: true, filter: true, show: true, edit: true },
                     }
-                },
-                actions: {
-                    new: {
-                        after: async (response, request, context) => setNameForTable(response, request, context, 'speech')
-                    },
-                    edit: {
-                        after: async (response, request, context) => setNameForTable(response, request, context, 'speech')
-                    },
                 },
             },
         },
@@ -149,6 +141,30 @@ const adminBro = new AdminBro({
                     },
                     edit: {
                         after: async (response, request, context) => setNameForTable(response, request, context, 'slot')
+                    },
+                },
+            },
+        },
+        {
+            resource: models.Day,
+            options: {
+                properties: {
+                    createdAt: {
+                        isVisible: false,
+                    },
+                    updatedAt: {
+                        isVisible: false,
+                    },
+                    name: {
+                        isVisible: { list: true, filter: true, show: true, edit: false },
+                    }
+                },
+                actions: {
+                    new: {
+                        after: async (response, request, context) => setNameForTable(response, request, context, 'day')
+                    },
+                    edit: {
+                        after: async (response, request, context) => setNameForTable(response, request, context, 'day')
                     },
                 },
             },
@@ -192,17 +208,31 @@ const adminBro = new AdminBro({
     rootPath: '/admin'
 });
 
+function formatDate(dateString) {
+    const months = [
+        'января', 'февраля', 'марта', 'апреля',
+        'мая', 'июня', 'июля', 'августа',
+        'сентября', 'октября', 'ноября', 'декабря'
+    ];
+
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+
+    return `${day} ${month}`;
+};
+
 //Внесение данных в поле name таблиц для дружелюбного дизайна
 async function setNameForTable(response, request, context, tableName) {
     const { record } = context;
 
-    const { time_start, time_end, last_name, first_name, middle_name, sectionId, slotId, speech_name, personId } = record.params;
+    const { time_start, time_end, last_name, first_name, middle_name, sectionId, slotId, date } = record.params;
 
     let newName = '';
     if (tableName == 'slot')
         newName = `${time_start} - ${time_end}`;
     else if (tableName == 'person') {
-        if(middle_name) {
+        if (middle_name) {
             newName = `${first_name} ${middle_name} ${last_name}`;
         } else {
             newName = `${first_name} ${last_name}`;
@@ -214,12 +244,9 @@ async function setNameForTable(response, request, context, tableName) {
         if (slot && section) {
             newName = `${String(section.name)} : ${String(slot.name)}`.replace(/\s+/g, ' ');;
         }
-    } else if (tableName == 'speech') {
-        const person = await models.Person.findByPk(personId, { attributes: ['name'] });
-        if (person) {
-            newName = `${person.name}: "${speech_name}"`;
-        }
-
+    }
+    else if (tableName == 'day') {
+        newName = formatDate(date);
     }
 
     // Update the value of the 'name' field in the record

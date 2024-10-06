@@ -1,4 +1,4 @@
-const { Slot, Section, Company, Person, Program, Speech, Event, Track, User, Mark, Schedule, Question, Quser, RecoveryLink } = require("../../models/models");
+const { Slot, Section, Company, Person, Program, Speech, Event, Track, User, Mark, Schedule, Question, Quser, RecoveryLink, Day, Assignment } = require("../../models/models");
 const { Op } = require('sequelize');
 const sequelize = require('./DB');
 const bcrypt = require('bcryptjs');
@@ -26,10 +26,22 @@ class DBManager {
             return sections;
     }
 
-    async getProgramsBySectionId(sectionId) {
+    async getDates() {
+        const dates = await Day.findAll({
+            order: [['name', 'ASC']]
+        });
+
+        if (dates)
+            return dates;
+    }
+
+    async getProgramsBySectionId(sectionId, date) {
         const programs = await Program.findAll({
             where: {
                 sectionId: sectionId,
+                dayId: {
+                    [Op.eq]: sequelize.literal(`(SELECT id FROM Days WHERE name = \'${date}\')`)
+                }
             },
             include: [
                 {
@@ -53,15 +65,26 @@ class DBManager {
                     model: Slot
                 },
                 {
+                    model: Day,
+                    where: {
+                        name: date
+                    }
+                },
+                {
                     model: Speech,
                     include: [
                         {
-                            model: Person,
+                            model: Assignment, // Объединяем с моделью Assignment
                             include: [
                                 {
-                                    model: Company
+                                    model: Person, // Включаем Person для получения спикеров
+                                    include: [
+                                        {
+                                            model: Company
+                                        }
+                                    ],
                                 }
-                            ],
+                            ]
                         },
                         {
                             model: Track,
@@ -81,10 +104,15 @@ class DBManager {
         const speech = await Speech.findByPk(speechId, {
             include: [
                 {
-                    model: Person,
+                    model: Assignment, // Объединяем с моделью Assignment
                     include: [
                         {
-                            model: Company
+                            model: Person, // Включаем Person для получения спикеров
+                            include: [
+                                {
+                                    model: Company
+                                }
+                            ],
                         }
                     ]
                 },
@@ -126,15 +154,23 @@ class DBManager {
                         model: Slot
                     },
                     {
+                        model: Day
+                    },
+                    {
                         model: Speech,
                         include: [
                             {
-                                model: Person,
+                                model: Assignment, // Объединяем с моделью Assignment
                                 include: [
                                     {
-                                        model: Company
+                                        model: Person, // Включаем Person для получения спикеров
+                                        include: [
+                                            {
+                                                model: Company
+                                            }
+                                        ],
                                     }
-                                ],
+                                ]
                             },
                             {
                                 model: Track,
@@ -162,22 +198,84 @@ class DBManager {
 
     async getEvents() {
         const events = await Event.findAll({
-            include: [{ model: Slot }]
+            include: [
+                { model: Slot },
+                { model: Day },
+            ]
         });
 
         if (events)
             return events;
     }
 
-    async getEventBySlotId(slotId) {
+    async getEventsByDate(date) {
+        try {
+            const events = await Event.findAll({
+                include: [
+                    { model: Slot },
+                    {
+                        model: Day,
+                        where: {
+                            name: date // Фильтруем по дате
+                        },
+                        required: true // Обязательно соединяем с Day
+                    },
+                ],
+            });
+
+            // Преобразуем результат для получения уникальных имен
+            return events;
+            //const uniqueSlotNames = [...new Set(events.map(event => event.Slot.name))];
+        } catch (e) {
+
+        }
+    }
+
+    async getProgramsByDate(date) {
+        const programs = await Program.findAll({
+            where: {
+                show: true,
+                sectionId: {
+                    [Op.ne]: null
+                }
+            },
+            include: [
+                {
+                    model: Slot,
+                },
+                {
+                    model: Day,
+                    where: {
+                        name: date // Фильтруем по дате
+                    },
+                    required: true // Обязательно соединяем с Day
+                },
+                {
+                    model: Section,
+                }
+            ],
+        });
+
+        return programs
+    }
+
+    async getEventBySlotId(slotId, date) {
         try {
             const event = await Event.findOne(
                 {
-                    where: { slotId: slotId },
+                    where: {
+                        slotId: slotId,
+                        dayId: {
+                            [Op.eq]: sequelize.literal(`(SELECT id FROM Days WHERE name = \'${date}\')`)
+                        }
+                    },
                     include: [
                         {
                             model: Slot
-                        }
+                        },
+                        {
+                            model: Day
+                        },
                     ]
                 }
             );
@@ -189,11 +287,20 @@ class DBManager {
 
     }
 
-    async getProgramsBySlotId(slotId) {
+    async getProgramsBySlotId(slotId, date) {
         try {
             const programs = await Program.findAll(
                 {
-                    where: { slotId: slotId },
+                    where: {
+                        slotId: slotId,
+                        show: true,
+                        dayId: {
+                            [Op.eq]: sequelize.literal(`(SELECT id FROM Days WHERE name = \'${date}\')`)
+                        },
+                        sectionId: {
+                            [Op.ne]: null
+                        }
+                    },
                     include: [
                         {
                             model: Section,
@@ -215,15 +322,23 @@ class DBManager {
                             model: Slot
                         },
                         {
+                            model: Day
+                        },
+                        {
                             model: Speech,
                             include: [
                                 {
-                                    model: Person,
+                                    model: Assignment, // Объединяем с моделью Assignment
                                     include: [
                                         {
-                                            model: Company
+                                            model: Person, // Включаем Person для получения спикеров
+                                            include: [
+                                                {
+                                                    model: Company
+                                                }
+                                            ],
                                         }
-                                    ],
+                                    ]
                                 },
                                 {
                                     model: Track,
@@ -369,29 +484,32 @@ class DBManager {
                     model: Speech,
                     include: [
                         {
-                            model: Person,
-                            include: [
-                                {
-                                    model: Company
-                                }
-                            ],
-                            order: [['last_name', 'ASC']],
-                        },
-                        {
                             model: Track,
                         },
+                        {
+                            model: Assignment, // Объединяем с моделью Assignment
+                            include: [
+                                {
+                                    model: Person, // Включаем Person для получения спикеров
+                                    include: [
+                                        {
+                                            model: Company
+                                        }
+                                    ],
+                                }
+                            ]
+                        }
                     ],
                     duplicating: false,
                 }
             ],
             duplicating: false,
-            order: [[Speech, Person, 'last_name', 'ASC']],
             distinct: true
         });
 
-        if (programs) {
-            return [...new Map(programs.map(program => [program?.speech?.person?.id, program])).values()];;
-        }
+        // Возвращаем программы с добавленными спикерами
+        if (programs)
+            return programs;
 
     }
 
@@ -477,15 +595,23 @@ class DBManager {
                                 model: Slot
                             },
                             {
+                                model: Day
+                            },
+                            {
                                 model: Speech,
                                 include: [
                                     {
-                                        model: Person,
+                                        model: Assignment, // Объединяем с моделью Assignment
                                         include: [
                                             {
-                                                model: Company
+                                                model: Person, // Включаем Person для получения спикеров
+                                                include: [
+                                                    {
+                                                        model: Company
+                                                    }
+                                                ],
                                             }
-                                        ],
+                                        ]
                                     },
                                     {
                                         model: Track,

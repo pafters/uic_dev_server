@@ -51,7 +51,7 @@ const COMPONENTS = {
             [
                 Markup.button.callback(TITLES.DETAIL, CALLBACKS_DATA.DETAIL), //this.programs[this.programIndex].id
                 Markup.button.callback(TITLES.SET_MARK, CALLBACKS_DATA.SET_MARK),
-                Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
+                //Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
                 Markup.button.callback(TITLES.FOLLOW, CALLBACKS_DATA.FOLLOW),
             ],
             [
@@ -60,18 +60,18 @@ const COMPONENTS = {
         ],
         DETAIL_PROGRAM: [
             Markup.button.callback(TITLES.SET_MARK, CALLBACKS_DATA.SET_MARK),
-            Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
+            //Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
             Markup.button.callback(TITLES.FOLLOW, CALLBACKS_DATA.FOLLOW),
         ],
         FOLLOW: [
             Markup.button.callback(TITLES.DETAIL, CALLBACKS_DATA.DETAIL),
             Markup.button.callback(TITLES.SET_MARK, CALLBACKS_DATA.SET_MARK),
-            Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
+            //Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
             Markup.button.callback(TITLES.UNFOLLOW, CALLBACKS_DATA.UNFOLLOW),
         ],
         DETAIL_FOLLOW: [
             Markup.button.callback(TITLES.SET_MARK, CALLBACKS_DATA.SET_MARK),
-            Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
+            //Markup.button.callback(TITLES.QUESTION, CALLBACKS_DATA.QUESTION),
             Markup.button.callback(TITLES.UNFOLLOW, CALLBACKS_DATA.UNFOLLOW),
         ],
         SET_MARKS: (num) => [

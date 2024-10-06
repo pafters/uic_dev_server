@@ -7,6 +7,9 @@ const COMPONENTS = require("../../components/telegramComponents");
 const { message } = require("telegraf/filters");
 
 const { google } = require("googleapis");
+const moment = require("moment");
+const { createCollage } = require("./PhotoManager");
+const path = require("path");
 
 class MessageManager {
     constructor() {
@@ -25,6 +28,8 @@ class MessageManager {
         this.exSpeech = null;
         this.exRequestDate = new Date();
         this.cancelInProgress = false;
+        this.currentMenu = null;
+        this.currentDate = null;
     }
 
     auth = async (ctx) => { //Авторизация
@@ -113,11 +118,35 @@ class MessageManager {
     getSlots = async () => { //меню со списком времени
         try {
             this.cancelInProgress = true;
-            const slots = await DBManager.getSlots();
-            if (slots) {
-                this.slots = slots;
-                return slots;
+            const events = await DBManager.getEventsByDate(this.currentDate);
+            const programs = await DBManager.getProgramsByDate(this.currentDate);
+            if (events && programs) {
+                const slots = [...new Set([...events, ...programs].map(el => {
+                    if (el.slot?.name) {
+                        return el.slot
+                    }
+                }))].filter((value, index, self) =>
+                    index === self.findIndex((t) => (
+                        t.id === value.id
+                    ))).sort((a, b) => {
+                        const timeA = a.name; // Извлекаем время начала из строки
+                        const timeB = b.name;
+
+                        // Сравниваем время начала, преобразуя в формат HH:MM
+                        const timeAParts = timeA.split(':').map(Number);
+                        const timeBParts = timeB.split(':').map(Number);
+                        if (timeAParts[0] !== timeBParts[0]) {
+                            return timeAParts[0] - timeBParts[0];
+                        } else {
+                            return timeAParts[1] - timeBParts[1];
+                        }
+                    });
+                if (slots) {
+                    this.slots = slots;
+                    return slots;
+                }
             }
+
         } catch (e) {
             console.log(e);
             this.cancelInProgress = false;
@@ -172,19 +201,15 @@ class MessageManager {
             this.cancelInProgress = true;
             if (!this.isFollowKeybord) {
                 const slots = await this.getSlots();
-
                 if (slots) {
                     this.programIndex = 0;
                     this.event = null;
                     this.programs = [];
-
                     if (isNow) {
                         this.slotIndex = 0;
                         if (!time) {
                             const date = new Date();
-                            time = `12:45`;
-
-                            //time = `${date.getHours() + 4}:${date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()}`;
+                            time = `${date.getHours() + 4}:${date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()}`;
                             const closestSlotTime = this.getSlotByTime(time);
                             if (closestSlotTime) {
                                 const slot = closestSlotTime;// await DBManager.getSlotIdByTime(time);
@@ -204,14 +229,15 @@ class MessageManager {
                             const closestSlotTime = this.getSlotByTime(time, time_end);
                             if (closestSlotTime) {
                                 const slot = closestSlotTime;//await DBManager.getSlotIdByTime(time);
+
                                 slots.forEach((element, index) => {
-                                    if (element.id == slot.id)
+                                    if (element.id == slot.id) {
                                         this.slotIndex = index;
+                                    }
                                 });
                             }
                         }
                     } else {
-                        console.log(this.slotIndex, this.slots.length)
                         if (this.slotIndex >= 0 && this.slotIndex <= this.slots.length) {
                             this.slotIndex++;
                             if (this.slotIndex === this.slots.length) {
@@ -225,17 +251,25 @@ class MessageManager {
                         }
                     }
                     if (this.slotIndex >= 0 && this.slotIndex < this.slots.length) {
-                        const programs = await DBManager.getProgramsBySlotId(slots[this.slotIndex].id);
+                        const programs = await DBManager.getProgramsBySlotId(slots[this.slotIndex].id, this.currentDate);
                         if (programs.length > 0) {
-                            this.programs = programs;
-                            await this.getNextSpeech(ctx);
+                            const filtredPrograms = programs.filter(program =>
+                                program.day && program.day.name === this.currentDate
+                            );
+                            if (filtredPrograms) {
+                                this.programs = filtredPrograms;
+                                await this.getNextSpeech(ctx);
+                            }
                         } else if (programs.length == 0) {
-                            const event = await DBManager.getEventBySlotId(slots[this.slotIndex].id);
+                            const event = await DBManager.getEventBySlotId(slots[this.slotIndex].id, this.currentDate);
                             if (event) {
-                                this.event = event;
-                                await this.getNextEvent(ctx);
-                            } else {
-                                await this.getProgramsList(ctx, false);
+                                if (event.day?.name === this.currentDate) {
+                                    this.event = event;
+                                    await this.getNextEvent(ctx);
+                                }
+                                else {
+                                    await this.getProgramsList(ctx, false);
+                                }
                             }
                         }
                     }
@@ -274,7 +308,6 @@ class MessageManager {
                 const programIndex = this.isFollowKeybord ? this.followProgramIndex : this.programIndex;
 
                 if (programIndex <= programs.length - 1) {
-
                     let keyboard = [];
                     if (!this.isFollowKeybord)
                         keyboard = Markup.inlineKeyboard(COMPONENTS.CALLBACKS.PROGRAM);
@@ -286,11 +319,11 @@ class MessageManager {
                         `${programs[programIndex]?.slot?.name}` +
                         `${programs[programIndex]?.section?.location ? ', ' + programs[programIndex]?.section?.location : ''}` +
                         `${programs[programIndex]?.section?.name ? ', ' + programs[programIndex]?.section?.name : ''}\n\n` +
-                        `<b>${programs[programIndex]?.speech?.speech_name}</b>\n\n` +
-                        `${programs[programIndex]?.speech?.person?.name ? programs[programIndex]?.speech?.person?.name : ''}` +
-                        `${programs[programIndex]?.speech?.person?.position ?
-                            `,\n${programs[programIndex]?.speech?.person?.position}` : ''}` +
-                        `${programs[programIndex]?.speech?.person?.company?.name ? ` @ ${programs[programIndex]?.speech?.person?.company?.name}` : ''}`,
+                        `<b>${programs[programIndex]?.speech?.name}</b>\n\n` +
+                        `${programs[programIndex]?.speech?.assignments ? programs[programIndex]?.speech?.assignments.map(assignment =>
+                            (assignment.person.name ? `${assignment.person.name} \n` : '') +
+                            (assignment.person?.position ? `${assignment.person?.position}` : '') +
+                            (assignment.person?.company?.name ? ` @ ${assignment.person?.company?.name} \n` : '')).join('\n') : ''}`,
 
                         { parse_mode: 'HTML', ...keyboard }
                     );
@@ -342,41 +375,58 @@ class MessageManager {
         if (!this.isFollowKeybord)
             keyboard = Markup.inlineKeyboard([COMPONENTS.CALLBACKS.DETAIL_PROGRAM, COMPONENTS.CALLBACKS.PROGRAM[1]]);
         else keyboard = Markup.inlineKeyboard([COMPONENTS.CALLBACKS.DETAIL_FOLLOW, COMPONENTS.CALLBACKS.PROGRAM[1]]);
+        let file = 'upload/speaker.jpg';
+        if (programs[programIndex - 1]?.speech?.assignments.length > 1) {
+            file = `upload/speakers-${programs[programIndex - 1]?.speech?.assignments.map(assignment => assignment.person.id).join('-')}.png`;
+            if (!fs.existsSync(file)) {
+                file = await createCollage(programs, programIndex);
+            }
+        } else if (programs[programIndex - 1]?.speech?.assignments.length === 1) {
+            if (fs.existsSync(programs[programIndex - 1]?.speech?.assignments[0].person.photo)) {
+                file = programs[programIndex - 1]?.speech?.assignments[0].person.photo;
+            }
+        }
 
         try {
             const data = await ctx.telegram.sendPhoto(ctx.chat.id, {
-                source: fs.createReadStream(`${programs[programIndex - 1]?.speech?.person?.photo ? programs[programIndex - 1]?.speech?.person?.photo : 'upload/speaker.jpg'}`)
+                source: fs.createReadStream(file)
             },
                 {
                     caption:
                         `${programs[programIndex - 1]?.slot?.name.replace(/\s{2,}/g, ' ').trimEnd()}` +
                         `${programs[programIndex - 1]?.section?.location ? ', ' + programs[programIndex - 1]?.section?.location.replace(/\s{2,}/g, ' ').trimEnd() : ''}` +
                         `${programs[programIndex - 1]?.section?.name ? ', ' + programs[programIndex - 1]?.section?.name.replace(/\s{2,}/g, ' ').trimEnd() : ''}\n\n` +
-                        `${programs[programIndex - 1]?.speech?.speech_name.replace(/\s{2,}/g, ' ').trimEnd()}\n\n` +
-                        `${programs[programIndex - 1]?.speech?.person?.name ? programs[programIndex - 1]?.speech?.person?.name.replace(/\s{2,}/g, ' ').trimEnd() : ''}` +
-                        `${programs[programIndex - 1]?.speech?.person?.position ?
-                            `,\n${programs[programIndex - 1]?.speech?.person?.position.replace(/\s{2,}/g, ' ').trimEnd()}` : ''}` +
-                        `${programs[programIndex - 1]?.speech?.person?.company?.name ? ` @ ${programs[programIndex - 1]?.speech?.person?.company?.name.replace(/\s{2,}/g, ' ').trimEnd()}` : ''}` +
-                        `${programs[programIndex - 1]?.speech?.abstract ? `${programs[programIndex - 1]?.speech?.person?.company?.name ? `\n\n` : ``}${programs[programIndex - 1]?.speech?.abstract.replace(/<(.|\n)*?>/g, '').replace(/\s{2,}/g, ' ').trimEnd()}` : ''}`,
+                        `${programs[programIndex - 1]?.speech?.name.replace(/\s{2,}/g, ' ').trimEnd()}\n\n` +
+                        `${programs[programIndex - 1]?.speech?.assignments.map(assignment =>
+                            (assignment.person.name ? `${assignment.person.name} \n` : '') +
+                            (assignment.person?.position ? `${assignment.person?.position}` : '') +
+                            (assignment.person?.company?.name ? ` @ ${assignment.person?.company?.name}` : '') + '\n\n'
+                        )
+                            }`.replace(/\s{2,}/g, ' ').trimEnd() +
+                        `${programs[programIndex - 1]?.speech?.abstract ? `${programs[programIndex - 1]?.speech?.abstract.replace(/<(.|\n)*?>/g, '').replace(/\s{2,}/g, ' ').trimEnd()}` : ''}`,
                     parse_mode: 'HTML',
                     ...keyboard
                 }
             );
             this.exSpeech = data;
         } catch (e) {
-            await ctx.telegram.sendPhoto(ctx.chat.id, {
-                source: fs.createReadStream(`${programs[programIndex - 1]?.speech?.person?.photo ? programs[programIndex - 1]?.speech?.person?.photo : 'upload/speaker.jpg'}`)
-            },
+            await ctx.telegram.sendPhoto(ctx.chat.id,
+                {
+                    source: fs.createReadStream(path)
+                },
                 {
                     caption:
                         `${programs[programIndex - 1]?.slot?.name.replace(/\s{2,}/g, ' ').trimEnd()}` +
                         `${programs[programIndex - 1]?.section?.location ? ', ' + programs[programIndex - 1]?.section?.location.replace(/\s{2,}/g, ' ').trimEnd() : ''}` +
                         `${programs[programIndex - 1]?.section?.name ? ', ' + programs[programIndex - 1]?.section?.name.replace(/\s{2,}/g, ' ').trimEnd() : ''}\n\n` +
-                        `${programs[programIndex - 1]?.speech?.speech_name.replace(/\s{2,}/g, ' ').trimEnd()}\n\n` +
-                        `${programs[programIndex - 1]?.speech?.person?.name ? programs[programIndex - 1]?.speech?.person?.name.replace(/\s{2,}/g, ' ').trimEnd() : ''}` +
-                        `${programs[programIndex - 1]?.speech?.person?.position ?
-                            `,\n${programs[programIndex - 1]?.speech?.person?.position.replace(/\s{2,}/g, ' ').trimEnd()}` : ''}` +
-                        `${programs[programIndex - 1]?.speech?.person?.company?.name ? ` @ ${programs[programIndex - 1]?.speech?.person?.company?.name.replace(/\s{2,}/g, ' ').trimEnd()}` : ''}`
+                        `${programs[programIndex - 1]?.speech?.assignments.map(assignment =>
+                            (assignment.person.name ? `${assignment.person.name} \n` : '') +
+                            (assignment.person?.position ? `${assignment.person?.position}` : '') +
+                            (assignment.person?.company?.name ? (`@ ${assignment.person?.company?.name}`) : '') +
+                            '\n\n'
+                        )
+                            }`.replace(/\s{2,}/g, ' ').trimEnd() +
+                        `${programs[programIndex - 1]?.speech?.abstract ? `${programs[programIndex - 1]?.speech?.abstract.replace(/<(.|\n)*?>/g, '').replace(/\s{2,}/g, ' ').trimEnd()}` : ''}`,
                 },
             );
             const data = await ctx.replyWithHTML(
@@ -385,6 +435,8 @@ class MessageManager {
             );
             this.exSpeech = data;
         }
+
+
     }
 
     getSpeechLocation = async (ctx) => { //где проходит доклад
@@ -422,12 +474,13 @@ class MessageManager {
                         if (this.exSpeech?.reply_markup?.inline_keyboard[0]) {
                             const arr = [];
                             this.exSpeech.reply_markup.inline_keyboard[0].forEach((el) => {
-                                if (el.callback_data !== 'set_mark')
+                                if (el.callback_data !== 'set_mark') {
                                     arr.push(Markup.button.callback(el.text, el.callback_data));
+                                }
                             });
                             this.exSpeech.reply_markup.inline_keyboard[0] = arr;
                             await ctx.telegram.editMessageReplyMarkup(ctx.chat.id, this.exSpeech?.message_id, null, { inline_keyboard: [arr, COMPONENTS.CALLBACKS.PROGRAM[1]] });
-                            this.addQuestionBttn(ctx);
+                            // this.addQuestionBttn(ctx);
                         }
                     }
 
@@ -515,7 +568,7 @@ class MessageManager {
             this.cancelInProgress = true;
             if (this.exSpeech && this.exSpeech?.reply_markup?.inline_keyboard[0]) {
                 if (!this.exSpeech?.reply_markup?.inline_keyboard[0].some(item => item.callback_data === COMPONENTS.HEARS.CALLBACKS.QUESTION)) {
-                    console.log(this.exSpeech?.reply_markup?.inline_keyboard[0].some(item => item.callback_data === COMPONENTS.CALLBACKS.QUESTION))
+
                     const keyboardLength = this.exSpeech.reply_markup.inline_keyboard[0].length;
                     const questionIndex = keyboardLength - 1;
                     const arr = this.exSpeech.reply_markup.inline_keyboard[0];
@@ -643,17 +696,59 @@ class MessageManager {
         this.isQuestionToSpeech = false;
     }
 
+    getDatesKeybord = async (ctx) => {
+        this.currentDate = null;
+        const dates = await DBManager.getDates();
+        const buttons = [];
+        if (dates) {
+            let j = 0;
+            buttons[j] = [];
+            buttons[j].push({ text: '📋 Программа' });
+            dates.forEach(async (date, i) => {
+                buttons[j].push({ text: date.name });
+                if (buttons[j].length == 3) {
+                    j++;
+                    buttons[j] = [];
+                }
+                if (i == dates.length - 1)
+                    await ctx.reply('Выбери пункт в меню', Markup
+                        .keyboard(buttons)
+                        .resize()
+                    );
+            });
+        }
+    }
+
     getSlotsKeybord = async (ctx) => { //получить список времени
         try {
             this.slotIndex = -1;
-            const slots = await DBManager.getSlots();
+            const events = await DBManager.getEventsByDate(this.currentDate);
+            const programs = await DBManager.getProgramsByDate(this.currentDate);
+            const slots = [...new Set([...events, ...programs].map(el => {
+                if (el.slot?.name) {
+                    return el.slot.name
+                }
+
+            }))].sort((a, b) => {
+                const timeA = a.split(' - ')[0]; // Извлекаем время начала из строки
+                const timeB = b.split(' - ')[0];
+
+                // Сравниваем время начала, преобразуя в формат HH:MM
+                const timeAParts = timeA.split(':').map(Number);
+                const timeBParts = timeB.split(':').map(Number);
+                if (timeAParts[0] !== timeBParts[0]) {
+                    return timeAParts[0] - timeBParts[0];
+                } else {
+                    return timeAParts[1] - timeBParts[1];
+                }
+            });
             const buttons = [];
             if (slots) {
                 let j = 0;
                 buttons[j] = [];
                 buttons[j].push({ text: '📋 Программа' });
                 slots.forEach(async (slot, i) => {
-                    buttons[j].push({ text: slot.name });
+                    buttons[j].push({ text: slot });
                     if (buttons[j].length == 3) {
                         j++;
                         buttons[j] = [];
@@ -675,26 +770,41 @@ class MessageManager {
     getSectionsKeybord = async (ctx) => { //получить секции (категории)
         try {
             this.slotIndex = -1;
-            const sections = await DBManager.getSections();
-            const buttons = [];
-            if (sections) {
-                let j = 0;
-                buttons[j] = [];
-                buttons[j].push({ text: '📋 Программа' });
-                sections.forEach(async (section, i) => {
-                    buttons[j].push({ text: section.name });
-                    if (buttons[j].length == 3) {
-                        j++;
-                        buttons[j] = [];
+            const programs = await DBManager.getProgramsByDate(this.currentDate);
+            if (programs) {
+                const sections = [...new Set([...programs].map(el => {
+                    if (el.section?.name) {
+                        return el.section?.name
                     }
-                    if (i == sections.length - 1)
-                        await ctx.reply('Выбери пункт в меню', Markup
-                            .keyboard(buttons)
-                            .resize()
-                        );
-                });
+                }
+                ))].filter(name => name !== null)
+                    .sort((a, b) => {
+                        if (a?.section && b.section) {
+                            const aSort = programs.find(program => { if (program.section) { return program.section?.name === a?.section?.sort } });
+                            const bSort = programs.find(program => { if (program.section) { return program.section?.name === b?.section?.sort } });
+                            return aSort - bSort;
+                        }
+                    });
+                const buttons = [];
+                if (sections) {
+                    let j = 0;
+                    buttons[j] = [];
+                    buttons[j].push({ text: '📋 Программа' });
+                    sections.forEach(async (section, i) => {
+                        buttons[j].push({ text: section });
+                        if (buttons[j].length == 3) {
+                            j++;
+                            buttons[j] = [];
+                        }
+                        if (i == sections.length - 1)
+                            await ctx.reply('Выбери пункт в меню', Markup
+                                .keyboard(buttons)
+                                .resize()
+                            );
+                    });
+                }
+                this.isFollowKeybord = false;
             }
-            this.isFollowKeybord = false;
         } catch (e) {
             console.log(e);
             await ctx.reply(COMPONENTS.ERRORS.INTERNAL_SERVER);
@@ -704,7 +814,7 @@ class MessageManager {
     getProgramsBySectionId = async (ctx, sectionId) => { //Вывод программ по секции
         try {
             this.cancelInProgress = true;
-            const programs = await DBManager.getProgramsBySectionId(sectionId);
+            const programs = await DBManager.getProgramsBySectionId(sectionId, this.currentDate);
 
             if (programs) {
                 this.programs = programs;
@@ -729,7 +839,7 @@ class MessageManager {
                     if (slotName)
                         this.followSlotName = slotName;
                     this.followPrograms.forEach(schedule => {
-                        if (schedule.program.slot.name == this.followSlotName)
+                        if (schedule.program.slot.name === this.followSlotName && schedule.program.day.name === this.currentDate)
                             programs.push(schedule.program);
                     })
                     this.followProgramsBySlot = programs;
@@ -753,10 +863,23 @@ class MessageManager {
 
                 const allSlots = [];
                 followPrograms.forEach(async (schedule, i) => {
-                    allSlots.push(schedule.program.slot.name);
+                    if (schedule.program.day.name === this.currentDate)
+                        allSlots.push(schedule.program.slot.name);
                 });
 
-                const uniqueSlots = [...new Set(allSlots)];
+                const uniqueSlots = [...new Set(allSlots)].sort((a, b) => {
+                    const timeA = a.split(' - ')[0]; // Извлекаем время начала из строки
+                    const timeB = b.split(' - ')[0];
+
+                    // Сравниваем время начала, преобразуя в формат HH:MM
+                    const timeAParts = timeA.split(':').map(Number);
+                    const timeBParts = timeB.split(':').map(Number);
+                    if (timeAParts[0] !== timeBParts[0]) {
+                        return timeAParts[0] - timeBParts[0];
+                    } else {
+                        return timeAParts[1] - timeBParts[1];
+                    }
+                });;
 
                 this.followPrograms = followPrograms;
                 this.isFollowKeybord = true;
@@ -832,7 +955,7 @@ class MessageManager {
     async getNav(ctx) { //получение схемы здания
         this.cancelInProgress = true;
         await ctx.replyWithPhoto({
-            source: fs.createReadStream('upload/nav.jpg')
+            source: fs.createReadStream('upload/nav.png')
         });
     }
 
@@ -840,8 +963,8 @@ class MessageManager {
         try {
             const followSpeech = await DBManager.setFollowSpeech(ctx.update.callback_query.from.id, this.programs[this.programIndex - 1]?.id);
             if (followSpeech)
-                ctx.reply(`Ты добавил доклад "${this.programs[this.programIndex - 1]?.speech?.speech_name.replace(/\s{2,}/g, ' ').trimEnd()}" в свое расписание`);
-            else ctx.reply(`Доклад "${this.programs[this.programIndex - 1]?.speech?.speech_name.replace(/\s{2,}/g, ' ').trimEnd()}" уже находится в твоем в списке`);
+                ctx.reply(`Ты добавил доклад "${this.programs[this.programIndex - 1]?.speech?.name.replace(/\s{2,}/g, ' ').trimEnd()}" в свое расписание`);
+            else ctx.reply(`Доклад "${this.programs[this.programIndex - 1]?.speech?.name.replace(/\s{2,}/g, ' ').trimEnd()}" уже находится в твоем в списке`);
         } catch (e) {
             console.log(e);
             await ctx.reply(COMPONENTS.ERRORS.INTERNAL_SERVER);
